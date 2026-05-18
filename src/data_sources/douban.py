@@ -11,12 +11,21 @@
 """
 
 import logging
+import random
 import re
+import time
 from datetime import date
 from typing import List, Optional
 
 from playwright.sync_api import sync_playwright
 
+from ..core.config import (
+    FETCH_DELAY_MAX,
+    FETCH_DELAY_MIN,
+    FETCH_RETRY_TIMES,
+    RETRY_DELAYS,
+    USER_AGENTS,
+)
 from ..models.book import Book
 from .base import BaseDataSource
 
@@ -45,12 +54,10 @@ class DoubanBookSource(BaseDataSource):
                 "--no-sandbox",
             ],
         )
+        ua = random.choice(USER_AGENTS)
+        logger.debug(f"  使用 UA: {ua[:60]}...")
         context = browser.new_context(
-            user_agent=(
-                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/125.0.0.0 Safari/537.36"
-            ),
+            user_agent=ua,
             viewport={"width": 1280, "height": 800},
             locale="zh-CN",
         )
@@ -111,17 +118,59 @@ class DoubanBookSource(BaseDataSource):
 
     def _handle_anti_scrape(self, page) -> bool:
         """处理豆瓣反爬页面。返回 True 表示通过了验证"""
-        import time
         try:
+            # 检测常见的反爬/验证码页面特征
+            page_title = page.title()
+            if any(kw in page_title for kw in ("验证", "captcha", "验证码", "安全验证")):
+                logger.warning(f"检测到验证码/反爬页面，标题: {page_title}")
+                return False
+
+            # 检测已知的验证码元素
+            captcha_selectors = [
+                "img[src*='captcha']",
+                "img[src*='verify']",
+                "#captcha_image",
+                ".captcha",
+            ]
+            for sel in captcha_selectors:
+                if page.locator(sel).count() > 0:
+                    logger.warning(f"检测到验证码元素: {sel}")
+                    return False
+
+            # 原有的"点我继续浏览"检测
             btn = page.get_by_text("点我继续浏览")
             if btn.count() > 0:
-                logger.info("检测到反爬页面，点击继续浏览...")
+                logger.warning("检测到反爬页面，点击继续浏览...")
                 btn.click()
                 page.wait_for_timeout(3000)
                 return True
         except Exception:
             pass
         return False
+
+    def _retry_goto(self, page, url: str, timeout: int | None = None) -> bool:
+        """带指数退避重试的页面跳转，返回是否成功"""
+        timeout = timeout or self.timeout
+        for attempt in range(FETCH_RETRY_TIMES):
+            try:
+                page.goto(url, wait_until="domcontentloaded", timeout=timeout)
+                return True
+            except Exception as e:
+                logger.warning(
+                    f"  页面加载失败 (尝试 {attempt + 1}/{FETCH_RETRY_TIMES}): "
+                    f"{url} — {e}"
+                )
+                if attempt < FETCH_RETRY_TIMES - 1:
+                    delay = RETRY_DELAYS[attempt]
+                    logger.info(f"  等待 {delay}s 后重试...")
+                    time.sleep(delay)
+        return False
+
+    def _random_delay(self):
+        """请求间随机延迟，降低被反爬标记的风险"""
+        delay = random.uniform(FETCH_DELAY_MIN, FETCH_DELAY_MAX)
+        logger.debug(f"  随机延迟 {delay:.1f}s")
+        time.sleep(delay)
 
     # ─── 策略 1: latest 新书速递 ────────────────────────
 
@@ -136,7 +185,9 @@ class DoubanBookSource(BaseDataSource):
         page = self._get_page()
 
         try:
-            page.goto(url, wait_until="domcontentloaded", timeout=self.timeout)
+            if not self._retry_goto(page, url):
+                logger.warning(f"latest 页面加载失败: {url}")
+                return books
             self._handle_anti_scrape(page)
             page.wait_for_timeout(3000)
 
@@ -144,7 +195,9 @@ class DoubanBookSource(BaseDataSource):
 
             for item in items:
                 book = self._parse_latest_item(item)
-                if book and self._is_recent(book.published_date, months):
+                if not book:
+                    continue
+                if self._is_recent(book.published_date, months):
                     book.source_category = subcat
                     books.append(book)
         except Exception as e:
@@ -173,6 +226,11 @@ class DoubanBookSource(BaseDataSource):
                 item.locator(".subject-rating .font-small").inner_text().strip()
             )
             rating = float(rating_text) if rating_text else 0.0
+
+            # 跳过未评分书籍（豆瓣默认 0.0 表示无评分）
+            if rating == 0.0:
+                logger.debug(f"  跳过未评分书籍: {title}")
+                return None
 
             rating_count_text = (
                 item.locator(".subject-rating .color-gray").inner_text().strip()
@@ -209,8 +267,13 @@ class DoubanBookSource(BaseDataSource):
             url = f"{self.TAG_URL}/{tag}?start={start}&sort=time"
             logger.info(f"  标签 [{tag}] 第 {page_num + 1} 页: {url}")
 
+            if page_num > 0:
+                self._random_delay()
+
             try:
-                page.goto(url, wait_until="domcontentloaded", timeout=self.timeout)
+                if not self._retry_goto(page, url):
+                    logger.warning(f"  页面加载失败: {url}")
+                    break
                 self._handle_anti_scrape(page)
                 page.wait_for_timeout(2000)
             except Exception as e:
@@ -224,7 +287,9 @@ class DoubanBookSource(BaseDataSource):
             page_books = []
             for item in items:
                 book = self._parse_tag_item(item)
-                if book and self._is_recent(book.published_date, months):
+                if not book:
+                    continue
+                if self._is_recent(book.published_date, months):
                     book.tags = [tag]
                     page_books.append(book)
 
@@ -279,6 +344,11 @@ class DoubanBookSource(BaseDataSource):
                 if rating_text:
                     rating = float(rating_text)
 
+            # 跳过未评分书籍（豆瓣默认 0.0 表示无评分）
+            if rating == 0.0:
+                logger.debug(f"  跳过未评分书籍: {title}")
+                return None
+
             pl = item.locator(".pl")
             rating_count = 0
             if pl.count() > 0:
@@ -310,7 +380,9 @@ class DoubanBookSource(BaseDataSource):
 
         page = self._get_page()
         try:
-            page.goto(book.douban_url, wait_until="domcontentloaded", timeout=60000)
+            if not self._retry_goto(page, book.douban_url, timeout=60000):
+                logger.warning(f"详情页加载失败: {book.douban_url}")
+                return book
             self._handle_anti_scrape(page)
             page.wait_for_timeout(2000)
 
@@ -365,6 +437,7 @@ class DoubanBookSource(BaseDataSource):
         title_text = title.lower()
         abstract_text = abstract.lower()
 
+        # 所有关键词已归一化为小写，确保对英文关键词（如 "AI"）大小写不敏感
         categories = {
             "文学": {
                 "keywords": ["小说", "散文", "诗", "文学", "诗歌", "随笔", "杂文", "戏剧"],
@@ -375,7 +448,7 @@ class DoubanBookSource(BaseDataSource):
                 "weight": 1.5,
             },
             "科技": {
-                "keywords": ["编程", "算法", "数据", "技术", "计算机", "人工智能", "AI",
+                "keywords": ["编程", "算法", "数据", "技术", "计算机", "人工智能", "ai",
                             "机器学习", "深度学习", "软件", "数学", "物理", "科学"],
                 "weight": 1.5,
             },
@@ -391,10 +464,9 @@ class DoubanBookSource(BaseDataSource):
         for cat, config in categories.items():
             score = 0
             for kw in config["keywords"]:
-                kw_lower = kw.lower()
-                if kw_lower in title_text:
+                if kw in title_text:
                     score += config["weight"]
-                elif kw_lower in abstract_text:
+                elif kw in abstract_text:
                     score += 1.0
 
             if score > best_score:

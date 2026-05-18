@@ -31,4 +31,11 @@ Thumbs.db
 
 # Project specific
 书籍推荐.md
+书籍推荐-2025年8月后出版.md
 知识库/
+
+# Egg info (from editable install)
+*.egg-info/
+
+# Claude AI config
+.claude/

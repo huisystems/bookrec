@@ -37,7 +37,13 @@ class MarkdownGenerator:
         return "\n".join(lines)
 
     def _format_book(self, book: Book, rank: int) -> str:
-        rating_stars = "⭐" * int(book.rating / 2) if book.rating else ""
+        if book.rating:
+            stars = book.rating / 2
+            full = int(stars)
+            half = 1 if (stars - full) >= 0.25 else 0
+            rating_stars = "⭐" * full + ("½" if half else "")
+        else:
+            rating_stars = ""
 
         lines = [
             f"## {rank}. 《{book.title}》",

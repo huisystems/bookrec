@@ -43,8 +43,14 @@ class ObsidianStore:
 
     def save_book(self, book: Book, notes: str = "") -> bool:
         """保存一本书到知识库。已存在则合并更新。返回 True 表示新增，False 表示更新"""
-        filepath = self._book_filepath(book)
-        exists = filepath.exists()
+        # 如果 douban_id 已存在，复用已有文件路径，防止同一本书存储为多个文件
+        existing_path = self.find_by_douban_id(book.douban_id) if book.douban_id else None
+        if existing_path:
+            filepath = existing_path
+            exists = True
+        else:
+            filepath = self._book_filepath(book)
+            exists = filepath.exists()
 
         if exists:
             existing = self._load_yaml(filepath)

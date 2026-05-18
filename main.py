@@ -1,80 +1,55 @@
 #!/usr/bin/env python3
 """
-书籍推荐自动化工具
-数据来源：豆瓣读书（使用 Playwright 抓取）
+书籍推荐自动化工具 - 快速入门
+使用 Orchestrator 统一抓取+推荐流程
 """
 
-import sys
-from datetime import date
-
-sys.path.insert(0, './src')
-
-from src.data_sources.douban import DoubanBookSource
-from src.services.filter import BookFilter, BookRanker
-from src.output.markdown_gen import MarkdownGenerator
+from src.core import config
+from src.services.orchestrator import Orchestrator
 
 
 def main():
     print("=" * 50)
-    print("📚 书籍推荐自动化工具")
+    print("书籍推荐自动化工具")
     print("=" * 50)
 
-    # 1. 抓取豆瓣数据
-    print("\n[1/4] 正在从豆瓣抓取新书数据...")
-    source = DoubanBookSource()
+    print("\n[1/3] 初始化编排器...")
+    orch = Orchestrator()
 
+    print("\n[2/3] 正在从豆瓣抓取数据（分类：经管、AI）...")
     try:
-        books = source.fetch_new_books(months=6)
-        print(f"    抓取到 {len(books)} 本候选书籍")
+        result = orch.fetch_all(categories=["经管", "AI"], months=config.FETCH_MONTHS)
+        print(f"    抓取到 {result['total_fetched']} 本候选书籍")
+        print(f"    新增 {result['new']} 本，更新详情 {result['updated']} 本")
     except Exception as e:
         print(f"    抓取失败: {e}")
         return
 
-    if not books:
-        print("    未能获取任何书籍数据")
-        return
-
-    # 2. 筛选（放宽条件：新书评价人数少，降低阈值）
-    print("\n[2/4] 筛选书籍（评分≥7.0，评价≥20人）...")
-    book_filter = BookFilter(max_months=6, min_rating=7.0, min_rating_count=20)
-    filtered = book_filter.filter(books)
-    print(f"    筛选后剩余 {len(filtered)} 本")
-
-    if not filtered:
-        print("    筛选后无书籍（近期出版的高分书较少）")
-        return
-
-    # 3. 排序
-    print("\n[3/4] 综合评分排序...")
-    ranker = BookRanker(rating_weight=0.4, recency_weight=0.3, popularity_weight=0.3)
-    ranked = ranker.rank(filtered)
-    top_books = ranked[:10]
-    print(f"    取前 {len(top_books)} 本")
-
-    # 4. 获取详情（简介和目录）
-    print("\n[4/4] 获取书籍详情（简介和目录）...")
-    for i, book in enumerate(top_books):
-        print(f"    [{i+1}/{len(top_books)}] 获取 {book.title[:20]}...")
-        source.fetch_book_detail(book)
-
-    # 5. 输出
-    print("\n[5/5] 生成推荐列表...")
-    generator = MarkdownGenerator()
-    output = generator.generate(
-        top_books,
-        title=f"{date.today().year} 年 {date.today().month} 月书籍推荐 TOP {len(top_books)}"
+    print(f"\n[3/3] 生成推荐列表...")
+    print(f"    条件：评分 >={config.DEFAULT_MIN_RATING}，评价 >={config.DEFAULT_MIN_RATING_COUNT} 人")
+    rec_result = orch.recommend(
+        top_n=config.DEFAULT_TOP_N,
+        min_rating=config.DEFAULT_MIN_RATING,
+        min_rating_count=config.DEFAULT_MIN_RATING_COUNT,
+        months=config.FETCH_MONTHS,
     )
 
-    output_file = "书籍推荐.md"
-    with open(output_file, 'w', encoding='utf-8') as f:
-        f.write(output)
-    print(f"    已保存到: {output_file}")
+    if not rec_result["books"]:
+        print("    没有符合条件的书籍")
+        return
 
-    print("\n" + "=" * 50)
-    print("📖 推荐书籍列表")
-    print("=" * 50)
-    print(output)
-    print("\n✅ 完成！")
+    top_books = rec_result["books"]
+
+    print(f"\n{'=' * 50}")
+    print(f"推荐书籍 TOP {len(top_books)}")
+    print(f"{'=' * 50}")
+    for i, book in enumerate(top_books, 1):
+        print(f"  {i:2d}. {book.title}")
+        print(f"      作者: {book.author}  |  评分: {book.rating} ({book.rating_count} 人评价)  |  分类: {book.category}")
+
+    print(f"\n{'=' * 50}")
+    print("完成！推荐列表已保存到知识库「推荐列表」目录")
+    print(f"   知识库路径: {orch.store.root}")
 
 
 if __name__ == "__main__":
