@@ -12,6 +12,7 @@ dependencies = [
     "click>=8.0",
     "pyyaml>=6.0",
     "rich>=13.0",
+    "python-dateutil>=2.8.0",
 ]
 
 classifiers = [
@@ -39,9 +40,9 @@ keywords = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/<user>/bookrec"
-Repository = "https://github.com/<user>/bookrec.git"
-"Bug Tracker" = "https://github.com/<user>/bookrec/issues"
+Homepage = "https://github.com/huisystems/bookrec"
+Repository = "https://github.com/huisystems/bookrec.git"
+"Bug Tracker" = "https://github.com/huisystems/bookrec/issues"
 
 [project.scripts]
 bookrec = "src.cli.app:main"

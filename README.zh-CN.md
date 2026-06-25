@@ -43,7 +43,7 @@ bookrec recommend --top 10 --output 推荐.md
 
 ```bash
 # 克隆仓库
-git clone https://github.com/your-username/bookrec.git
+git clone https://github.com/huisystems/bookrec.git
 cd bookrec
 
 # 创建并激活虚拟环境（推荐）

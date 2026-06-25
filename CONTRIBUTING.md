@@ -7,7 +7,7 @@ Welcome! We're excited that you're interested in contributing to bookrec, a tool
 1. Fork the repository on GitHub.
 2. Clone your fork:
    ```bash
-   git clone https://github.com/your-username/bookrec.git
+   git clone https://github.com/huisystems/bookrec.git
    cd bookrec
    ```
 3. Install the package in editable mode with development dependencies:

@@ -43,7 +43,7 @@ bookrec recommend --top 10 --output 推荐.md
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/bookrec.git
+git clone https://github.com/huisystems/bookrec.git
 cd bookrec
 
 # Create and activate a virtual environment (recommended)
