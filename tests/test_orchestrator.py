@@ -88,12 +88,7 @@ class TestFetchAll:
         assert ids == {"100"}
 
     def test_fetch_skips_existing_with_description(self, orch, source, vault):
-        """重复抓取同 douban_id → 不重复入库 (new=0)
-
-        注: 现有实现里 description 不在 yaml frontmatter 中,
-        orchestrator 走 'description 缺失就重抓' 分支会触发 fetch_book_detail.
-        本测试只验证不重复入库, 不验证 '跳过 fetch_book_detail' 这一更细的契约.
-        """
+        """重复抓取时已有 description → 不重抓详情、不更新"""
         existing = _book(douban_id="200", description="已有简介")
         orch.store.save_book(existing)
 
@@ -104,6 +99,9 @@ class TestFetchAll:
         result = orch.fetch_all(categories=["经管"], months=12, max_pages=1)
 
         assert result["new"] == 0
+        assert result["updated"] == 0
+        # 关键契约：description 已有就不再 fetch_book_detail
+        source.fetch_book_detail.assert_not_called()
         # 库里仍只有 1 本
         assert orch.store.get_existing_ids() == {"200"}
 

@@ -80,6 +80,8 @@ class ObsidianStore:
             "last_recommended": "",
             "price": book.price or "",
             "source_url": book.douban_url or "",
+            "description": book.description or "",
+            "catalog": book.catalog or "",
         }
 
         content = ["---"]
