@@ -427,9 +427,9 @@ class DoubanBookSource(BaseDataSource):
         return date.today()
 
     def _is_recent(self, pub_date: date, months: int) -> bool:
-        from datetime import timedelta
+        from dateutil.relativedelta import relativedelta
 
-        cutoff = date.today().replace(day=1) - timedelta(days=30 * months)
+        cutoff = date.today().replace(day=1) - relativedelta(months=months)
         return pub_date >= cutoff
 
     def _infer_category(self, title: str, abstract: str) -> str:

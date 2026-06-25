@@ -1,5 +1,7 @@
-from datetime import date, timedelta
+from datetime import date
 from typing import List, Optional
+
+from dateutil.relativedelta import relativedelta
 
 from ..models.book import Book
 
@@ -23,7 +25,8 @@ class BookFilter:
 
     def filter(self, books: List[Book], months: Optional[int] = None) -> List[Book]:
         months = months or self.max_months
-        cutoff_date = date.today().replace(day=1) - timedelta(days=30 * months)
+        # 使用 relativedelta 做精确月份回退（避免 30 天估算导致的边界漂移）
+        cutoff_date = date.today().replace(day=1) - relativedelta(months=months)
 
         filtered = []
         for book in books:
