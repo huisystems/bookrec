@@ -232,10 +232,10 @@ class Orchestrator:
         months: int = 12,
     ) -> List[Book]:
         """从知识库加载书数据为 Book 对象"""
-        from datetime import timedelta
+        from dateutil.relativedelta import relativedelta
 
         raw_list = self.store.list_books(category=category, min_rating=min_rating)
-        cutoff = date.today().replace(day=1) - timedelta(days=30 * months)
+        cutoff = date.today().replace(day=1) - relativedelta(months=months)
 
         seen_ids = set()
         books = []
