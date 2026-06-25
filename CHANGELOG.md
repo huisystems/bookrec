@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- `.github/workflows/publish.yml` — 自动发布到 PyPI / TestPyPI。使用 OIDC trusted publishing（无需 API token secret），触发条件：`v*` tag push 自动试发到 TestPyPI；`workflow_dispatch` 手动选 TestPyPI / PyPI 目标。Workflow 包含 build → tests → `twine check` → upload artifact → publish 的完整链路。
+
+### Fixed
+
+- `pyproject.toml` 补上 `readme = "README.md"` 和 `license = { file = "LICENSE" }` 字段，消除 `twine check` 报的 `long_description` / `long_description_content_type` missing 警告，使包能直接 `pip install` 后正常显示 README
+
 ## [0.2.1] - 2026-06-26
 
 ### Added
