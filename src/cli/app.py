@@ -85,6 +85,7 @@ def fetch(ctx, category: str, months: int, max_pages: int, no_detail: bool):
         console.print(f"  去重跳过: {result['duplicates']} 本")
     except Exception as e:
         err_console.print(f"[red]  ❌ 抓取失败: {e}[/]")
+        raise click.exceptions.Exit(1)
 
     # 显示统计
     console.print("\n[bold]📊 知识库统计[/]")
