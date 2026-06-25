@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- `BookFilter.filter()` 日期窗口用 `relativedelta` 做精确月份回退，替代原先 `timedelta(days=30*months)` 的近似算法（修复 `test_combined_filter` 边界用例失败）
+
+### Changed
+
+- `pyproject.toml` / `README.md` / `README.zh-CN.md` / `CONTRIBUTING.md` 中的仓库占位符替换为实际地址 `huisystems/bookrec`
+- 显式声明 `python-dateutil>=2.8.0` 依赖
+
+### Removed
+
+- 根目录临时脚本 `extract_top25.py` 及其输出的散落推荐 Markdown（功能由 `bookrec recommend --top 25 --output` 完全覆盖）
+
 ## [0.2.0] - 2026-05-09
 
 ### Added
