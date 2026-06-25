@@ -7,9 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `tests/test_orchestrator.py` — 9 个 Orchestrator 集成测试，覆盖 `fetch_all` 跨分类去重、重复抓取更新路径、详情抓取失败容错、`recommend` 排序与持久化、`stats`/`history` 聚合，以及月份窗口边界回归（不依赖网络，使用 `tmp_path` + `MagicMock` 替换 `DoubanBookSource`）
+
 ### Fixed
 
 - `BookFilter.filter()` 日期窗口用 `relativedelta` 做精确月份回退，替代原先 `timedelta(days=30*months)` 的近似算法（修复 `test_combined_filter` 边界用例失败）
+- `Orchestrator._load_books_from_store` 同样改用 `relativedelta`（同款 bug：`recommend` 在跨月边界会错误过滤掉近 3 月内出版的书）
 
 ### Changed
 
