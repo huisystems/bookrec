@@ -6,6 +6,8 @@ build-backend = "setuptools.build_meta"
 name = "bookrec"
 version = "0.2.1"
 description = "书籍推荐自动化工具 - 从豆瓣抓取经管/AI类好书，沉淀到知识库"
+readme = "README.md"
+license = { file = "LICENSE" }
 requires-python = ">=3.10"
 dependencies = [
     "playwright>=1.40.0",
