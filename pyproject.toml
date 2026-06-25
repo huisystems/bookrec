@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bookrec"
-version = "0.2.0"
+version = "0.2.1"
 description = "书籍推荐自动化工具 - 从豆瓣抓取经管/AI类好书，沉淀到知识库"
 requires-python = ">=3.10"
 dependencies = [
