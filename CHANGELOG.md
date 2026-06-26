@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `.github/workflows/publish.yml` — 自动发布到 PyPI / TestPyPI。使用 OIDC trusted publishing（无需 API token secret），触发条件：`v*` tag push 自动试发到 TestPyPI；`workflow_dispatch` 手动选 TestPyPI / PyPI 目标。Workflow 包含 build → tests → `twine check` → upload artifact → publish 的完整链路。
+- **Ruff lint 与 format 集成**：`pyproject.toml` 新增 `[tool.ruff]` 段，启用 `E/W/F/B/I/UP` 规则族，line-length 100，target Python 3.10。CI 的 `test` job 增 `ruff check .` 与 `ruff format --check .` 步骤（与 pytest 并行，只跑一次不重复 4 个 Python 版本）。本地自动修复了 97 个历史 lint 问题（PEP 604 注解、import 排序、unused import、f-string 占位符、文件末尾换行等），手修了 10 处 E501 过长行 + 1 处 B904（`raise ... from None`）
 - `tests/test_search_note.py` — 8 个直接覆盖 `Orchestrator.search` / `Orchestrator.add_note` 的集成测试（之前这两个方法只通过 store 层被 transitive 测过）：title 命中、author 命中、大小写不敏感、无命中返回空、跳过 `__索引.md`、首次添加笔记生成 `## 笔记` 节、重复 add_note 覆盖（不追加）、不存在 douban_id 抛 `ValueError`
 
 ### Fixed
