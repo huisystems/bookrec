@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `smoke_fetch.py` — 发版前的真实豆瓣抓取冒烟脚本。临时 vault、`--max-pages 1`、2 分钟超时，验证 CLI 退出 0 / 至少 1 本入库 / frontmatter 完整 / `## 简介` section 生成（detail fetch 工作）。不入项目 `知识库/`，不被 setuptools 打包到 wheel。集成到 `docs/RELEASING.md` Step 1.3 作为发版前必跑步骤。
 
+### Blocked
+
+- **首次发布（v0.2.3 → PyPI）被 smoke_fetch 阻止**：smoke 第一次跑通 10 本 AI（v0.2.2 tag 时），第二次（v0.2.3 准备发时）抓回 0 本。根因：豆瓣 tag 页面已升级反爬——当未登录 Playwright 访问时，服务器返回 `<title>豆瓣 - 登录跳转页</title>` 而不是带书目列表的页面；当前 `_handle_anti_scrape` 的检测（"点我继续浏览"按钮 / 验证码 selector / captcha 标题）均未覆盖到此模式。`douban.py` 当前**无 cookie 处理逻辑**。在引入登录 cookie（或更稳的抓取策略）之前，发到 PyPI 不可行——全球用户拿到包后会得到 0 本的"空抓取"。v0.2.3 暂不发布，等反爬修复后再切。
+
 ## [0.2.2] - 2026-06-26
 
 ### Added
