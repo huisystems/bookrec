@@ -1,6 +1,7 @@
 """bookrec CLI - 书籍推荐工具"""
 
 import logging
+from pathlib import Path
 
 import click
 from rich.console import Console
@@ -63,6 +64,8 @@ def fetch(ctx, category: str, months: int, max_pages: int, no_detail: bool):
     categories = [c.strip() for c in category.split(",") if c.strip()]
 
     console.print(f"[bold]📚 开始抓取，分类: {', '.join(categories)}，近 {months} 个月[/]")
+
+    _warn_if_no_cookie()
 
     # 用 fetch_all 跨分类去重
     valid_cats = [c for c in categories if c in config.VALID_CATEGORIES]
@@ -316,6 +319,19 @@ def login():
     except Exception as e:
         err_console.print(f"[red]登录失败: {e}[/]")
         raise click.exceptions.Exit(1) from None
+
+
+def _warn_if_no_cookie() -> None:
+    """first-run 提示：未检测到 cookie 时给清晰指引，让用户不必等 30 秒后才报错"""
+    if not config.COOKIE_FILE:
+        return
+    if Path(config.COOKIE_FILE).exists():
+        return
+    err_console.print(
+        f"[yellow]⚠ 未检测到豆瓣登录 cookie: {config.COOKIE_FILE}[/]\n"
+        f"[yellow]  豆瓣现在对未登录的 tag 页面强制重定向到登录页。[/]\n"
+        f"[yellow]  首次使用请跑: [cyan]bookrec login[/]  完成一次性登录。[/]"
+    )
 
 
 def main():
