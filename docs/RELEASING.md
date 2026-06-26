@@ -90,6 +90,20 @@ python3 -m venv /tmp/test-venv
 rm -rf /tmp/test-venv dist/ build/
 ```
 
+**真实豆瓣抓取冒烟**（推荐，每次发版前跑一次）：
+
+```bash
+.venv/bin/python smoke_fetch.py
+```
+
+脚本会创建临时 vault，真实调一次 `bookrec fetch --category AI --max-pages 1`，验证：
+- CLI exit 0
+- 至少抓回 1 本
+- 书文件 YAML frontmatter 完整
+- detail fetch 触发的 `## 简介` section 生成
+
+需要 `playwright install chromium`（首次）。脚本不会写数据到项目 `知识库/`，只用 tmp 目录。
+
 全部应通过。
 
 ### 1.4 Commit + Tag

@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- `smoke_fetch.py` — 发版前的真实豆瓣抓取冒烟脚本。临时 vault、`--max-pages 1`、2 分钟超时，验证 CLI 退出 0 / 至少 1 本入库 / frontmatter 完整 / `## 简介` section 生成（detail fetch 工作）。不入项目 `知识库/`，不被 setuptools 打包到 wheel。集成到 `docs/RELEASING.md` Step 1.3 作为发版前必跑步骤。
+
 ## [0.2.2] - 2026-06-26
 
 ### Added
