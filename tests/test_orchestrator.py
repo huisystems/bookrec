@@ -62,9 +62,11 @@ def _stub_detail_filler(source):
 
     默认 MagicMock 的 side_effect=auto 会把返回设为 Mock 对象，book.description = Mock()
     不让 `not description` 为真，触发不了 orchestrator 的更新分支。"""
+
     def fill(book):
         book.description = f"已补全: {book.title}"
         return book
+
     source.fetch_book_detail.side_effect = fill
 
 
@@ -147,12 +149,27 @@ class TestRecommend:
         """recommend 按 score 倒序、限制 top_n、写推荐文件"""
         # 直接写 5 本到知识库（绕过 fetch）
         books = [
-            _book(douban_id="r1", title="高分新书", rating=9.0, rating_count=500,
-                  published=date(2026, 5, 1)),
-            _book(douban_id="r2", title="中等", rating=8.0, rating_count=200,
-                  published=date(2026, 4, 1)),
-            _book(douban_id="r3", title="低分旧书", rating=7.0, rating_count=50,
-                  published=date(2025, 1, 1)),
+            _book(
+                douban_id="r1",
+                title="高分新书",
+                rating=9.0,
+                rating_count=500,
+                published=date(2026, 5, 1),
+            ),
+            _book(
+                douban_id="r2",
+                title="中等",
+                rating=8.0,
+                rating_count=200,
+                published=date(2026, 4, 1),
+            ),
+            _book(
+                douban_id="r3",
+                title="低分旧书",
+                rating=7.0,
+                rating_count=50,
+                published=date(2025, 1, 1),
+            ),
         ]
         for b in books:
             orch.store.save_book(b)

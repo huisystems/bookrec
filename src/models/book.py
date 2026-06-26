@@ -1,6 +1,5 @@
 from dataclasses import dataclass, field
 from datetime import date
-from typing import List, Optional
 
 
 @dataclass
@@ -12,29 +11,30 @@ class Book:
     rating: float
     rating_count: int
     category: str  # "经管" | "AI" | "科学" | ...
-    tags: List[str] = field(default_factory=list)  # 豆瓣标签 / 关键词
+    tags: list[str] = field(default_factory=list)  # 豆瓣标签 / 关键词
 
     # 唯一标识
-    isbn: Optional[str] = None
-    douban_id: Optional[str] = None
-    douban_url: Optional[str] = None
-    price: Optional[str] = None
+    isbn: str | None = None
+    douban_id: str | None = None
+    douban_url: str | None = None
+    price: str | None = None
 
     # 扩展信息
-    cover_url: Optional[str] = None
-    description: Optional[str] = None
-    catalog: Optional[str] = None
+    cover_url: str | None = None
+    description: str | None = None
+    catalog: str | None = None
 
     # 元信息
-    score: Optional[float] = None  # 综合推荐分
+    score: float | None = None  # 综合推荐分
     source: str = "douban_latest"  # 数据来源: douban_latest | douban_tag
-    source_category: str = ""      # 抓取时的分类上下文
+    source_category: str = ""  # 抓取时的分类上下文
 
     def __post_init__(self):
         # 自动从 URL 提取 douban_id
         if self.douban_url and not self.douban_id:
             import re
-            m = re.search(r'/subject/(\d+)/?', self.douban_url)
+
+            m = re.search(r"/subject/(\d+)/?", self.douban_url)
             if m:
                 self.douban_id = m.group(1)
 
@@ -50,8 +50,9 @@ class Book:
     def filename_safe_title(self) -> str:
         """生成适合做文件名的安全标题"""
         import re
-        safe = re.sub(r'[\\/:*?"<>|]', '', self.title)
-        safe = safe.strip().replace(' ', '')
+
+        safe = re.sub(r'[\\/:*?"<>|]', "", self.title)
+        safe = safe.strip().replace(" ", "")
         return safe[:80] if len(safe) > 80 else safe
 
     @property

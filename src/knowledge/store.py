@@ -17,11 +17,9 @@
 """
 
 import json
-import os
 import re
-from datetime import date, datetime
+from datetime import date
 from pathlib import Path
-from typing import Dict, List, Optional, Set
 
 import yaml
 
@@ -112,7 +110,7 @@ class ObsidianStore:
         filepath.write_text("\n".join(content), encoding="utf-8")
         return not exists
 
-    def load_book(self, douban_id: str) -> Optional[Dict]:
+    def load_book(self, douban_id: str) -> dict | None:
         """按 douban_id 查找并加载书"""
         for f in self.root.glob("图书/**/*.md"):
             if f.name == "__索引.md":
@@ -124,10 +122,10 @@ class ObsidianStore:
 
     def list_books(
         self,
-        category: Optional[str] = None,
+        category: str | None = None,
         min_rating: float = 0,
-        tag: Optional[str] = None,
-    ) -> List[Dict]:
+        tag: str | None = None,
+    ) -> list[dict]:
         """列出知识库中的书"""
         results = []
         pattern = f"图书/{category}/**/*.md" if category else "图书/**/*.md"
@@ -142,7 +140,7 @@ class ObsidianStore:
             results.append(data)
         return results
 
-    def find_by_douban_id(self, douban_id: str) -> Optional[Path]:
+    def find_by_douban_id(self, douban_id: str) -> Path | None:
         """查找 douban_id 对应的文件路径"""
         for f in self.root.glob("图书/**/*.md"):
             if f.name == "__索引.md":
@@ -152,7 +150,7 @@ class ObsidianStore:
                 return f
         return None
 
-    def get_existing_ids(self) -> Set[str]:
+    def get_existing_ids(self) -> set[str]:
         """获取知识库中所有已有的 douban_id"""
         ids = set()
         for f in self.root.glob("图书/**/*.md"):
@@ -195,9 +193,7 @@ class ObsidianStore:
 
     # ─── 推荐列表 ────────────────────────────────────────
 
-    def save_recommendation(
-        self, title: str, books_data: List[Dict], content: str
-    ):
+    def save_recommendation(self, title: str, books_data: list[dict], content: str):
         """保存一份推荐列表"""
         filename = f"{title.replace(' ', '-').replace('/', '-')}.md"
         filepath = self.root / "推荐列表" / filename
@@ -221,7 +217,7 @@ class ObsidianStore:
         lines = ["# 图书索引", "", f"> 共计 {len(books)} 本书", "", "---", ""]
 
         # 按分类分组
-        by_cat: Dict[str, list] = {}
+        by_cat: dict[str, list] = {}
         for b in books:
             cat = b.get("category", "其他")
             by_cat.setdefault(cat, []).append(b)
@@ -231,13 +227,18 @@ class ObsidianStore:
             lines.append("")
             lines.append("| # | 书名 | 作者 | 评分 | 出版 | 入库 |")
             lines.append("| --- | --- | --- | --- | --- | --- |")
-            for i, b in enumerate(sorted(by_cat[cat], key=lambda x: x.get("rating", 0), reverse=True), 1):
+            for i, b in enumerate(
+                sorted(by_cat[cat], key=lambda x: x.get("rating", 0), reverse=True),
+                1,
+            ):
                 title = b.get("title", "?")
                 author = b.get("author", "?")[:12]
                 rating = b.get("rating", 0)
                 published = b.get("published", "?")
                 first_seen = b.get("first_seen", "?")[:10]
-                lines.append(f"| {i} | {title} | {author} | {rating} | {published} | {first_seen} |")
+                lines.append(
+                    f"| {i} | {title} | {author} | {rating} | {published} | {first_seen} |"
+                )
             lines.append("")
 
         index_path = self.root / "图书" / "__索引.md"
@@ -245,12 +246,12 @@ class ObsidianStore:
         index_path.write_text(content, encoding="utf-8")
         return content
 
-    def update_stats(self) -> Dict:
+    def update_stats(self) -> dict:
         """生成并保存统计信息，返回统计数据"""
         books = self.list_books()
 
         total = len(books)
-        by_cat: Dict[str, int] = {}
+        by_cat: dict[str, int] = {}
         total_rating = 0.0
         rated_count = 0
         for b in books:
@@ -285,7 +286,7 @@ class ObsidianStore:
 
     # ─── 数据源快照 ─────────────────────────────────────
 
-    def save_snapshot(self, category: str, raw_books: List[Dict]):
+    def save_snapshot(self, category: str, raw_books: list[dict]):
         """保存原始抓取数据"""
         today = date.today().strftime("%Y-%m-%d")
         filename = f"{today}-{category}.json"
@@ -301,7 +302,7 @@ class ObsidianStore:
         cat_dir = book.category_dir
         return self.root / "图书" / cat_dir / f"{book.filename_safe_title}.md"
 
-    def _load_yaml(self, filepath: Path) -> Dict:
+    def _load_yaml(self, filepath: Path) -> dict:
         """读取 .md 文件的 YAML frontmatter"""
         content = filepath.read_text(encoding="utf-8")
         if not content.startswith("---"):

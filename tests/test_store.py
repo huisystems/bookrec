@@ -1,12 +1,13 @@
-import pytest
 from datetime import date
 from pathlib import Path
-from src.models.book import Book
+
+import pytest
+
 from src.knowledge.store import ObsidianStore
+from src.models.book import Book
 
 
 class TestObsidianStore:
-
     @pytest.fixture
     def store(self, tmp_path):
         return ObsidianStore(str(tmp_path))
@@ -134,17 +135,38 @@ class TestObsidianStore:
         assert store.list_books() == []
 
     def test_list_books_category_filter(self, store):
-        store.save_book(Book("科技书", "作者", "出版社", date(2026, 4, 1), 8.0, 100, "科技", douban_id="t-001"))
-        store.save_book(Book("文学书", "作者", "出版社", date(2026, 4, 1), 8.0, 100, "文学", douban_id="t-002"))
-        store.save_book(Book("另一科技书", "作者", "出版社", date(2026, 4, 1), 9.0, 200, "科技", douban_id="t-003"))
+        store.save_book(
+            Book("科技书", "作者", "出版社", date(2026, 4, 1), 8.0, 100, "科技", douban_id="t-001")
+        )
+        store.save_book(
+            Book("文学书", "作者", "出版社", date(2026, 4, 1), 8.0, 100, "文学", douban_id="t-002")
+        )
+        store.save_book(
+            Book(
+                "另一科技书",
+                "作者",
+                "出版社",
+                date(2026, 4, 1),
+                9.0,
+                200,
+                "科技",
+                douban_id="t-003",
+            )
+        )
         assert len(store.list_books()) == 3
         assert len(store.list_books(category="科技")) == 2
         assert len(store.list_books(category="文学")) == 1
 
     def test_list_books_min_rating_filter(self, store):
-        store.save_book(Book("高分书", "作者", "出版社", date(2026, 4, 1), 9.0, 100, "科技", douban_id="r-001"))
-        store.save_book(Book("中分书", "作者", "出版社", date(2026, 4, 1), 7.5, 100, "科技", douban_id="r-002"))
-        store.save_book(Book("低分书", "作者", "出版社", date(2026, 4, 1), 6.0, 100, "科技", douban_id="r-003"))
+        store.save_book(
+            Book("高分书", "作者", "出版社", date(2026, 4, 1), 9.0, 100, "科技", douban_id="r-001")
+        )
+        store.save_book(
+            Book("中分书", "作者", "出版社", date(2026, 4, 1), 7.5, 100, "科技", douban_id="r-002")
+        )
+        store.save_book(
+            Book("低分书", "作者", "出版社", date(2026, 4, 1), 6.0, 100, "科技", douban_id="r-003")
+        )
         assert len(store.list_books(min_rating=8.0)) == 1
         assert store.list_books(min_rating=8.0)[0]["title"] == "高分书"
         assert len(store.list_books(min_rating=7.0)) == 2
@@ -182,16 +204,18 @@ class TestObsidianStore:
 
     def test_generate_index(self, store, sample_book):
         store.save_book(sample_book)
-        store.save_book(Book(
-            title="另一本书",
-            author="李四",
-            publisher="文学出版社",
-            published_date=date(2026, 3, 1),
-            rating=7.5,
-            rating_count=50,
-            category="文学",
-            douban_id="douban-002",
-        ))
+        store.save_book(
+            Book(
+                title="另一本书",
+                author="李四",
+                publisher="文学出版社",
+                published_date=date(2026, 3, 1),
+                rating=7.5,
+                rating_count=50,
+                category="文学",
+                douban_id="douban-002",
+            )
+        )
         result = store.generate_index()
         index_path = store.root / "图书" / "__索引.md"
         assert index_path.exists()
@@ -206,16 +230,18 @@ class TestObsidianStore:
 
     def test_update_stats(self, store, sample_book):
         store.save_book(sample_book)
-        store.save_book(Book(
-            title="文学书",
-            author="李四",
-            publisher="文学出版社",
-            published_date=date(2026, 3, 1),
-            rating=7.0,
-            rating_count=50,
-            category="文学",
-            douban_id="douban-002",
-        ))
+        store.save_book(
+            Book(
+                title="文学书",
+                author="李四",
+                publisher="文学出版社",
+                published_date=date(2026, 3, 1),
+                rating=7.0,
+                rating_count=50,
+                category="文学",
+                douban_id="douban-002",
+            )
+        )
         stats = store.update_stats()
         stats_path = store.root / "统计.md"
         assert stats_path.exists()

@@ -2,7 +2,6 @@
 
 import logging
 from datetime import date
-from typing import Dict, List, Optional
 
 from ..core import config
 from ..data_sources.douban import DoubanBookSource
@@ -17,8 +16,8 @@ logger = logging.getLogger(__name__)
 class Orchestrator:
     def __init__(
         self,
-        vault_path: Optional[str] = None,
-        timeout: Optional[int] = None,
+        vault_path: str | None = None,
+        timeout: int | None = None,
     ):
         self.store = ObsidianStore(vault_path or config.VAULT_PATH)
         self.source = DoubanBookSource(timeout=timeout or config.FETCH_TIMEOUT)
@@ -26,7 +25,7 @@ class Orchestrator:
 
     # ─── 抓取 ──────────────────────────────────────────
 
-    def fetch(self, category: str, months: int = 12, max_pages: int = 2) -> Dict:
+    def fetch(self, category: str, months: int = 12, max_pages: int = 2) -> dict:
         if category not in config.VALID_CATEGORIES:
             raise ValueError(f"无效分类: {category}，可选: {config.VALID_CATEGORIES}")
 
@@ -35,7 +34,7 @@ class Orchestrator:
         elif category == "AI":
             return self._fetch_ai(months, max_pages)
 
-    def fetch_all(self, categories: List[str], months: int = 12, max_pages: int = 2) -> Dict:
+    def fetch_all(self, categories: list[str], months: int = 12, max_pages: int = 2) -> dict:
         """抓取多个分类，跨分类去重"""
         all_books = []
         self.source.start_session()
@@ -50,13 +49,13 @@ class Orchestrator:
 
         return self._dedup_and_store(all_books, category_hint="+".join(categories))
 
-    def _fetch_business(self, months: int, max_pages: int = 2) -> Dict:
+    def _fetch_business(self, months: int, max_pages: int = 2) -> dict:
         return self._dedup_and_store(
             self._fetch_business_raw(months, max_pages),
             category_hint="经管",
         )
 
-    def _fetch_business_raw(self, months: int, max_pages: int) -> List[Book]:
+    def _fetch_business_raw(self, months: int, max_pages: int) -> list[Book]:
         books = []
         latest_books = self.source.fetch_latest(subcat="商业经管", months=months)
         for b in latest_books:
@@ -65,34 +64,30 @@ class Orchestrator:
         books.extend(latest_books)
 
         for tag in ["经管", "商业", "管理", "投资"]:
-            tag_books = self.source.fetch_tag_books(
-                tag=tag, months=months, max_pages=max_pages
-            )
+            tag_books = self.source.fetch_tag_books(tag=tag, months=months, max_pages=max_pages)
             for b in tag_books:
                 b.category = "经管"
                 b.source_category = "经管"
             books.extend(tag_books)
         return books
 
-    def _fetch_ai(self, months: int, max_pages: int) -> Dict:
+    def _fetch_ai(self, months: int, max_pages: int) -> dict:
         return self._dedup_and_store(
             self._fetch_ai_raw(months, max_pages),
             category_hint="AI",
         )
 
-    def _fetch_ai_raw(self, months: int, max_pages: int) -> List[Book]:
+    def _fetch_ai_raw(self, months: int, max_pages: int) -> list[Book]:
         books = []
         for tag in ["人工智能", "机器学习", "深度学习"]:
-            tag_books = self.source.fetch_tag_books(
-                tag=tag, months=months, max_pages=max_pages
-            )
+            tag_books = self.source.fetch_tag_books(tag=tag, months=months, max_pages=max_pages)
             for b in tag_books:
                 b.category = "AI"
                 b.source_category = "AI"
             books.extend(tag_books)
         return books
 
-    def _dedup_and_store(self, books: List[Book], category_hint: str = "") -> Dict:
+    def _dedup_and_store(self, books: list[Book], category_hint: str = "") -> dict:
         existing_ids = self.store.get_existing_ids()
         new_count = 0
         update_count = 0
@@ -129,7 +124,9 @@ class Orchestrator:
                 if existing_path:
                     existing_data = self.store._load_yaml(existing_path)
                     book.category = existing_data.get("category", book.category)
-                    book.source_category = existing_data.get("source_category", book.source_category)
+                    book.source_category = existing_data.get(
+                        "source_category", book.source_category
+                    )
                     self.store.save_book(book)
                     update_count += 1
 
@@ -165,11 +162,11 @@ class Orchestrator:
     def recommend(
         self,
         top_n: int = 10,
-        category: Optional[str] = None,
+        category: str | None = None,
         min_rating: float = 7.0,
         min_rating_count: int = 20,
         months: int = 12,
-    ) -> Dict:
+    ) -> dict:
         """从知识库生成推荐列表"""
         all_books = self._load_books_from_store(
             category=category,
@@ -227,10 +224,10 @@ class Orchestrator:
 
     def _load_books_from_store(
         self,
-        category: Optional[str] = None,
+        category: str | None = None,
         min_rating: float = 0,
         months: int = 12,
-    ) -> List[Book]:
+    ) -> list[Book]:
         """从知识库加载书数据为 Book 对象"""
         from dateutil.relativedelta import relativedelta
 
@@ -273,6 +270,7 @@ class Orchestrator:
 
     def _parse_date(self, date_str: str) -> date:
         import re
+
         m = re.search(r"(\d{4})-(\d{1,2})", str(date_str))
         if m:
             return date(int(m.group(1)), int(m.group(2)), 1)
@@ -282,13 +280,13 @@ class Orchestrator:
 
     def list_books(
         self,
-        category: Optional[str] = None,
+        category: str | None = None,
         min_rating: float = 0,
-        tag: Optional[str] = None,
-    ) -> List[Dict]:
+        tag: str | None = None,
+    ) -> list[dict]:
         return self.store.list_books(category=category, min_rating=min_rating, tag=tag)
 
-    def search(self, query: str) -> List[Dict]:
+    def search(self, query: str) -> list[dict]:
         """全文搜索图书"""
         results = []
         for f in self.store.root.glob("图书/**/*.md"):
@@ -304,10 +302,10 @@ class Orchestrator:
     def add_note(self, douban_id: str, note_text: str):
         self.store.add_note(douban_id, note_text)
 
-    def stats(self) -> Dict:
+    def stats(self) -> dict:
         return self.store.update_stats()
 
-    def history(self) -> List[str]:
+    def history(self) -> list[str]:
         """列出历史推荐列表"""
         rec_dir = self.store.root / "推荐列表"
         if not rec_dir.exists():

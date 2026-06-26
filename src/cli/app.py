@@ -1,13 +1,11 @@
 """bookrec CLI - 书籍推荐工具"""
 
 import logging
-import sys
-from typing import Optional
 
 import click
 from rich.console import Console
-from rich.table import Table
 from rich.markdown import Markdown
+from rich.table import Table
 
 from ..core import config
 from ..services.orchestrator import Orchestrator
@@ -71,21 +69,23 @@ def fetch(ctx, category: str, months: int, max_pages: int, no_detail: bool):
     invalid_cats = [c for c in categories if c not in config.VALID_CATEGORIES]
 
     for c in invalid_cats:
-        err_console.print(f"[red]⚠ 无效分类: {c}，跳过 (可选: {', '.join(config.VALID_CATEGORIES)})[/]")
+        err_console.print(
+            f"[red]⚠ 无效分类: {c}，跳过 (可选: {', '.join(config.VALID_CATEGORIES)})[/]"
+        )
 
     if not valid_cats:
         return
 
     try:
         result = orch.fetch_all(categories=valid_cats, months=months, max_pages=max_pages)
-        console.print(f"\n[cyan]结果汇总[/]")
+        console.print("\n[cyan]结果汇总[/]")
         console.print(f"  抓取: [green]{result['total_fetched']}[/] 本")
         console.print(f"  新增: [green]{result['new']}[/] 本")
         console.print(f"  更新详情: [green]{result['updated']}[/] 本")
         console.print(f"  去重跳过: {result['duplicates']} 本")
     except Exception as e:
         err_console.print(f"[red]  ❌ 抓取失败: {e}[/]")
-        raise click.exceptions.Exit(1)
+        raise click.exceptions.Exit(1) from None
 
     # 显示统计
     console.print("\n[bold]📊 知识库统计[/]")
@@ -97,9 +97,7 @@ def fetch(ctx, category: str, months: int, max_pages: int, no_detail: bool):
 
 @cli.command()
 @click.option("--top", "-n", default=config.DEFAULT_TOP_N, type=int, help="推荐数量")
-@click.option(
-    "--category", "-c", default=None, help="限定分类 (经管/AI)，不传则全部"
-)
+@click.option("--category", "-c", default=None, help="限定分类 (经管/AI)，不传则全部")
 @click.option("--min-rating", default=config.DEFAULT_MIN_RATING, type=float, help="最低评分")
 @click.option(
     "--min-rating-count",
@@ -113,10 +111,10 @@ def fetch(ctx, category: str, months: int, max_pages: int, no_detail: bool):
 def recommend(
     ctx,
     top: int,
-    category: Optional[str],
+    category: str | None,
     min_rating: float,
     min_rating_count: int,
-    output: Optional[str],
+    output: str | None,
     json_output: bool,
 ):
     """从知识库生成推荐列表"""
@@ -166,12 +164,14 @@ def recommend(
     # 输出文件
     if output:
         import os
+
         filepath = os.path.abspath(output)
         with open(filepath, "w", encoding="utf-8") as f:
             f.write(md_content)
         console.print(f"\n[green]✅ 已保存到: {filepath}[/]")
     elif json_output:
         import json
+
         data = [
             {
                 "title": b.title,
@@ -193,7 +193,7 @@ def recommend(
 @click.option("--min-rating", default=0, type=float, help="最低评分")
 @click.option("--tag", default=None, help="按标签筛选")
 @click.pass_context
-def list_books(ctx, category: Optional[str], min_rating: float, tag: Optional[str]):
+def list_books(ctx, category: str | None, min_rating: float, tag: str | None):
     """浏览知识库中的图书"""
     orch: Orchestrator = ctx.obj["orchestrator"]
     books = orch.list_books(category=category, min_rating=min_rating, tag=tag)
@@ -231,7 +231,7 @@ def search(ctx, query: str):
     results = orch.search(query)
 
     if not results:
-        console.print(f"[yellow]🔍 未找到匹配 \"{query}\" 的图书[/]")
+        console.print(f'[yellow]🔍 未找到匹配 "{query}" 的图书[/]')
         return
 
     table = Table(title=f"搜索: {query} ({len(results)} 条)")

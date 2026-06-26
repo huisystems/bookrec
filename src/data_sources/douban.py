@@ -15,7 +15,6 @@ import random
 import re
 import time
 from datetime import date
-from typing import List, Optional
 
 from playwright.sync_api import sync_playwright
 
@@ -45,7 +44,6 @@ class DoubanBookSource(BaseDataSource):
         self.timeout = timeout
 
     def _make_browser(self):
-        from playwright.sync_api import sync_playwright
         p = sync_playwright().start()
         browser = p.chromium.launch(
             headless=True,
@@ -157,8 +155,7 @@ class DoubanBookSource(BaseDataSource):
                 return True
             except Exception as e:
                 logger.warning(
-                    f"  页面加载失败 (尝试 {attempt + 1}/{FETCH_RETRY_TIMES}): "
-                    f"{url} — {e}"
+                    f"  页面加载失败 (尝试 {attempt + 1}/{FETCH_RETRY_TIMES}): {url} — {e}"
                 )
                 if attempt < FETCH_RETRY_TIMES - 1:
                     delay = RETRY_DELAYS[attempt]
@@ -174,10 +171,10 @@ class DoubanBookSource(BaseDataSource):
 
     # ─── 策略 1: latest 新书速递 ────────────────────────
 
-    def fetch_new_books(self, months: int = 12) -> List[Book]:
+    def fetch_new_books(self, months: int = 12) -> list[Book]:
         return self.fetch_latest(subcat="全部", months=months)
 
-    def fetch_latest(self, subcat: str = "全部", months: int = 12) -> List[Book]:
+    def fetch_latest(self, subcat: str = "全部", months: int = 12) -> list[Book]:
         url = f"{self.LATEST_URL}?subcat={subcat}"
         logger.info(f"抓取 latest: {url}")
 
@@ -206,7 +203,7 @@ class DoubanBookSource(BaseDataSource):
         logger.info(f"  -> 抓到 {len(books)} 本")
         return books
 
-    def _parse_latest_item(self, item) -> Optional[Book]:
+    def _parse_latest_item(self, item) -> Book | None:
         """解析 latest 列表中的一条"""
         try:
             title_elem = item.locator("h2 a")
@@ -222,9 +219,7 @@ class DoubanBookSource(BaseDataSource):
 
             publisher = parts[2] if len(parts) > 2 else "未知"
 
-            rating_text = (
-                item.locator(".subject-rating .font-small").inner_text().strip()
-            )
+            rating_text = item.locator(".subject-rating .font-small").inner_text().strip()
             rating = float(rating_text) if rating_text else 0.0
 
             # 跳过未评分书籍（豆瓣默认 0.0 表示无评分）
@@ -232,9 +227,7 @@ class DoubanBookSource(BaseDataSource):
                 logger.debug(f"  跳过未评分书籍: {title}")
                 return None
 
-            rating_count_text = (
-                item.locator(".subject-rating .color-gray").inner_text().strip()
-            )
+            rating_count_text = item.locator(".subject-rating .color-gray").inner_text().strip()
             count_match = re.search(r"(\d+)", rating_count_text)
             rating_count = int(count_match.group(1)) if count_match else 0
 
@@ -255,9 +248,7 @@ class DoubanBookSource(BaseDataSource):
 
     # ─── 策略 2: tag 标签页 ─────────────────────────────
 
-    def fetch_tag_books(
-        self, tag: str, months: int = 12, max_pages: int = 3
-    ) -> List[Book]:
+    def fetch_tag_books(self, tag: str, months: int = 12, max_pages: int = 3) -> list[Book]:
         books = []
         page_num = 0
         page = self._get_page()
@@ -303,7 +294,7 @@ class DoubanBookSource(BaseDataSource):
         logger.info(f"  标签 [{tag}] 共抓到 {len(books)} 本")
         return books
 
-    def _parse_tag_item(self, item) -> Optional[Book]:
+    def _parse_tag_item(self, item) -> Book | None:
         try:
             title_elem = item.locator("h2 a")
             if title_elem.count() == 0:
@@ -401,7 +392,8 @@ class DoubanBookSource(BaseDataSource):
                     if (!dirShort) return '';
                     const dirId = dirShort.id.replace('_short', '');
                     const fullEl = document.getElementById(dirId + '_full');
-                    const moreLink = dirShort.querySelector ? dirShort.querySelector('a[href*="javascript"]') : null;
+                    const moreLink = dirShort.querySelector
+                        ? dirShort.querySelector('a[href*="javascript"]') : null;
                     if (fullEl) fullEl.style.display = 'block';
                     if (moreLink) moreLink.click();
                     return fullEl ? fullEl.innerText : (dirShort.innerText || '');
@@ -444,12 +436,35 @@ class DoubanBookSource(BaseDataSource):
                 "weight": 1.5,
             },
             "社科": {
-                "keywords": ["历史", "哲学", "社会", "心理", "经济", "政治", "法律", "文化", "人类学"],
+                "keywords": [
+                    "历史",
+                    "哲学",
+                    "社会",
+                    "心理",
+                    "经济",
+                    "政治",
+                    "法律",
+                    "文化",
+                    "人类学",
+                ],
                 "weight": 1.5,
             },
             "科技": {
-                "keywords": ["编程", "算法", "数据", "技术", "计算机", "人工智能", "ai",
-                            "机器学习", "深度学习", "软件", "数学", "物理", "科学"],
+                "keywords": [
+                    "编程",
+                    "算法",
+                    "数据",
+                    "技术",
+                    "计算机",
+                    "人工智能",
+                    "ai",
+                    "机器学习",
+                    "深度学习",
+                    "软件",
+                    "数学",
+                    "物理",
+                    "科学",
+                ],
                 "weight": 1.5,
             },
             "生活": {

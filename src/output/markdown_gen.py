@@ -1,5 +1,4 @@
 from datetime import date
-from typing import List
 
 from ..models.book import Book
 
@@ -7,7 +6,7 @@ from ..models.book import Book
 class MarkdownGenerator:
     """生成 Markdown 格式的书籍推荐列表"""
 
-    def generate(self, books: List[Book], title: str = None) -> str:
+    def generate(self, books: list[Book], title: str = None) -> str:
         if not title:
             today = date.today()
             title = f"{today.year} 年 {today.month} 月书籍推荐"
@@ -26,13 +25,14 @@ class MarkdownGenerator:
             lines.append("")
 
         # 尾注
-        lines.extend([
-            "---",
-            "",
-            f"*生成日期: {date.today().isoformat()} | "
-            f"数据来源: 豆瓣读书*",
-            "",
-        ])
+        lines.extend(
+            [
+                "---",
+                "",
+                f"*生成日期: {date.today().isoformat()} | 数据来源: 豆瓣读书*",
+                "",
+            ]
+        )
 
         return "\n".join(lines)
 
@@ -58,8 +58,7 @@ class MarkdownGenerator:
 
         if book.rating:
             lines.append(
-                f"**豆瓣评分：** {book.rating_display} {rating_stars} "
-                f"({book.rating_count} 人评价)"
+                f"**豆瓣评分：** {book.rating_display} {rating_stars} ({book.rating_count} 人评价)"
             )
         else:
             lines.append(f"**评价：** {book.rating_count} 人评价")
@@ -75,34 +74,42 @@ class MarkdownGenerator:
         lines.append("")
 
         if book.douban_url:
-            lines.extend([
-                f"**豆瓣链接：** [{book.douban_url}]({book.douban_url})",
-                "",
-            ])
+            lines.extend(
+                [
+                    f"**豆瓣链接：** [{book.douban_url}]({book.douban_url})",
+                    "",
+                ]
+            )
 
         if book.description:
-            lines.extend([
-                "<details>",
-                "<summary>📖 简介</summary>",
-                "",
-                book.description,
-                "</details>",
-                "",
-            ])
+            lines.extend(
+                [
+                    "<details>",
+                    "<summary>📖 简介</summary>",
+                    "",
+                    book.description,
+                    "</details>",
+                    "",
+                ]
+            )
 
         if book.catalog:
-            lines.extend([
-                "<details>",
-                "<summary>📑 目录</summary>",
-                "",
-            ])
+            lines.extend(
+                [
+                    "<details>",
+                    "<summary>📑 目录</summary>",
+                    "",
+                ]
+            )
             for cat_line in book.catalog.split("\n"):
                 if cat_line.strip():
                     lines.append(f"> {cat_line}")
-            lines.extend([
-                "</details>",
-                "",
-            ])
+            lines.extend(
+                [
+                    "</details>",
+                    "",
+                ]
+            )
 
         lines.append("---")
         return "\n".join(lines)

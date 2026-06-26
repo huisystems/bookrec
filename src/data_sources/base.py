@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from typing import List
 
 from ..models.book import Book
 
@@ -8,7 +7,7 @@ class BaseDataSource(ABC):
     """数据源抽象基类"""
 
     @abstractmethod
-    def fetch_new_books(self, months: int = 12) -> List[Book]:
+    def fetch_new_books(self, months: int = 12) -> list[Book]:
         """抓取近期出版的书"""
 
     @abstractmethod

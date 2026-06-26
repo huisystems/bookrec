@@ -1,5 +1,7 @@
-import pytest
 from datetime import date
+
+import pytest
+
 from src.models.book import Book
 from src.services.filter import BookFilter, BookRanker
 

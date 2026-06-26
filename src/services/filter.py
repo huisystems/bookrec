@@ -1,5 +1,4 @@
 from datetime import date
-from typing import List, Optional
 
 from dateutil.relativedelta import relativedelta
 
@@ -14,16 +13,14 @@ class BookFilter:
         max_months: int = 12,
         min_rating: float = 7.0,
         min_rating_count: int = 20,
-        exclude_keywords: Optional[List[str]] = None,
+        exclude_keywords: list[str] | None = None,
     ):
         self.max_months = max_months
         self.min_rating = min_rating
         self.min_rating_count = min_rating_count
-        self.exclude_keywords = exclude_keywords or [
-            "考试", "教材", "教辅", "习题", "真题"
-        ]
+        self.exclude_keywords = exclude_keywords or ["考试", "教材", "教辅", "习题", "真题"]
 
-    def filter(self, books: List[Book], months: Optional[int] = None) -> List[Book]:
+    def filter(self, books: list[Book], months: int | None = None) -> list[Book]:
         months = months or self.max_months
         # 使用 relativedelta 做精确月份回退（避免 30 天估算导致的边界漂移）
         cutoff_date = date.today().replace(day=1) - relativedelta(months=months)
@@ -60,7 +57,7 @@ class BookRanker:
         self.recency_weight = recency_weight
         self.popularity_weight = popularity_weight
 
-    def rank(self, books: List[Book]) -> List[Book]:
+    def rank(self, books: list[Book]) -> list[Book]:
         max_rating_count = max((b.rating_count for b in books), default=1)
         today = date.today()
         max_days = 365

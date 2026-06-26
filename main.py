@@ -25,8 +25,10 @@ def main():
         print(f"    抓取失败: {e}")
         return
 
-    print(f"\n[3/3] 生成推荐列表...")
-    print(f"    条件：评分 >={config.DEFAULT_MIN_RATING}，评价 >={config.DEFAULT_MIN_RATING_COUNT} 人")
+    print("\n[3/3] 生成推荐列表...")
+    print(
+        f"    条件：评分 >={config.DEFAULT_MIN_RATING}，评价 >={config.DEFAULT_MIN_RATING_COUNT} 人"
+    )
     rec_result = orch.recommend(
         top_n=config.DEFAULT_TOP_N,
         min_rating=config.DEFAULT_MIN_RATING,
@@ -45,7 +47,10 @@ def main():
     print(f"{'=' * 50}")
     for i, book in enumerate(top_books, 1):
         print(f"  {i:2d}. {book.title}")
-        print(f"      作者: {book.author}  |  评分: {book.rating} ({book.rating_count} 人评价)  |  分类: {book.category}")
+        print(
+            f"      作者: {book.author}  |  评分: {book.rating} "
+            f"({book.rating_count} 人评价)  |  分类: {book.category}"
+        )
 
     print(f"\n{'=' * 50}")
     print("完成！推荐列表已保存到知识库「推荐列表」目录")

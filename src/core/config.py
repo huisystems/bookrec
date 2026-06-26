@@ -1,4 +1,5 @@
 """全局配置"""
+
 import os
 from pathlib import Path
 
@@ -9,9 +10,9 @@ DEFAULT_VAULT = str(_PROJECT_ROOT / "知识库")
 VAULT_PATH = os.environ.get("BOOKREC_VAULT", DEFAULT_VAULT)
 
 # 抓取配置
-FETCH_MONTHS = 12          # 默认抓取近 N 个月出版的书
-FETCH_TIMEOUT = 60000      # Playwright 超时（ms）
-FETCH_PAGE_LIMIT = 3       # Tag 页最多抓取页数
+FETCH_MONTHS = 12  # 默认抓取近 N 个月出版的书
+FETCH_TIMEOUT = 60000  # Playwright 超时（ms）
+FETCH_PAGE_LIMIT = 3  # Tag 页最多抓取页数
 
 # 推荐配置
 DEFAULT_TOP_N = 10
@@ -20,9 +21,9 @@ DEFAULT_MIN_RATING_COUNT = 20
 
 # 抓取重试与延迟配置
 FETCH_RETRY_TIMES = 3
-RETRY_DELAYS = [1, 3, 7]          # 指数退避延迟（秒）
-FETCH_DELAY_MIN = 2                # 请求间最小随机延迟（秒）
-FETCH_DELAY_MAX = 5                # 请求间最大随机延迟（秒）
+RETRY_DELAYS = [1, 3, 7]  # 指数退避延迟（秒）
+FETCH_DELAY_MIN = 2  # 请求间最小随机延迟（秒）
+FETCH_DELAY_MAX = 5  # 请求间最大随机延迟（秒）
 
 # User-Agent 轮换池
 USER_AGENTS = [

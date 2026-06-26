@@ -1,9 +1,9 @@
 import pytest
+
 from src.data_sources.douban import DoubanBookSource
 
 
 class TestInferCategory:
-
     @pytest.fixture
     def source(self):
         return DoubanBookSource()

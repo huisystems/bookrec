@@ -21,6 +21,7 @@ def test_fetch_exits_nonzero_on_failure(runner):
     """fetch 命令内部异常时应以非零退出码结束，让 CI/脚本能感知失败"""
     # 注入一个会抛异常的 orchestrator
     from src.services.orchestrator import Orchestrator
+
     original_init = Orchestrator.__init__
 
     def boom(self, *args, **kwargs):
@@ -37,4 +38,6 @@ def test_fetch_exits_nonzero_on_failure(runner):
     finally:
         Orchestrator.__init__ = original_init
 
-    assert result.exit_code != 0, f"expected nonzero exit, got {result.exit_code}\noutput: {result.output}"
+    assert result.exit_code != 0, (
+        f"expected nonzero exit, got {result.exit_code}\noutput: {result.output}"
+    )

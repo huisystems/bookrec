@@ -1,11 +1,12 @@
-import pytest
 from datetime import date
+
+import pytest
+
 from src.models.book import Book
 from src.output.markdown_gen import MarkdownGenerator
 
 
 class TestMarkdownGenerator:
-
     @pytest.fixture
     def generator(self):
         return MarkdownGenerator()
