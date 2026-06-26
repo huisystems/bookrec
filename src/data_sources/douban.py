@@ -15,9 +15,12 @@ import random
 import re
 import time
 from datetime import date
+from pathlib import Path
 
 from playwright.sync_api import sync_playwright
+from rich.console import Console
 
+from ..core import config
 from ..core.config import (
     FETCH_DELAY_MAX,
     FETCH_DELAY_MIN,
@@ -54,15 +57,51 @@ class DoubanBookSource(BaseDataSource):
         )
         ua = random.choice(USER_AGENTS)
         logger.debug(f"  使用 UA: {ua[:60]}...")
-        context = browser.new_context(
-            user_agent=ua,
-            viewport={"width": 1280, "height": 800},
-            locale="zh-CN",
-        )
+        context_kwargs = {
+            "user_agent": ua,
+            "viewport": {"width": 1280, "height": 800},
+            "locale": "zh-CN",
+        }
+        cookie_path = config.COOKIE_FILE
+        if cookie_path and Path(cookie_path).exists():
+            context_kwargs["storage_state"] = cookie_path
+            logger.info(f"  已加载豆瓣登录 cookie: {cookie_path}")
+        context = browser.new_context(**context_kwargs)
         self._playwright = p
         self._browser = browser
         self._context = context
         return p, browser, context
+
+    @staticmethod
+    def login(cookie_path: str | None = None) -> str:
+        """交互式登录豆瓣：启动 headed Chromium 让用户手动登录，按回车后保存 cookie。
+
+        返回保存的 cookie 文件路径。失败抛 RuntimeError。
+        """
+        from playwright.sync_api import sync_playwright
+
+        target = cookie_path or config.COOKIE_FILE
+        target_path = Path(target)
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+
+        console_local = Console()
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=False)
+            context = browser.new_context(
+                viewport={"width": 1280, "height": 800},
+                locale="zh-CN",
+            )
+            page = context.new_page()
+            page.goto(f"{config.DOUBAN_BASE}/login", wait_until="domcontentloaded", timeout=60000)
+            console_local.print(
+                "[bold]浏览器已打开豆瓣登录页。请在浏览器中完成登录，登录完成后回到这里按回车。[/]"
+            )
+            input()
+            context.storage_state(path=str(target_path))
+            browser.close()
+
+        console_local.print(f"[green]已保存 cookie 到: {target_path}[/]")
+        return str(target_path)
 
     def _close_browser(self):
         try:
@@ -134,6 +173,24 @@ class DoubanBookSource(BaseDataSource):
                 if page.locator(sel).count() > 0:
                     logger.warning(f"检测到验证码元素: {sel}")
                     return False
+
+            # 豆瓣未登录拦截: 把整个页面 302 到登录跳转页
+            # 标题是 '豆瓣 - 登录跳转页', url 通常含 'accounts.douban.com'
+            if "登录跳转页" in page_title or "accounts.douban.com" in page.url:
+                logger.warning(f"检测到豆瓣登录拦截 (title={page_title!r}, url={page.url!r})")
+                if config.COOKIE_FILE and Path(config.COOKIE_FILE).exists():
+                    logger.error(
+                        f"已配置的 cookie 文件 {config.COOKIE_FILE} 已失效或被豆瓣撤销。"
+                        f"请重新跑 'bookrec login'。"
+                    )
+                else:
+                    logger.error(
+                        "未配置豆瓣登录 cookie。"
+                        "豆瓣现在对未登录的 tag 页面强制重定向到登录页。"
+                        f"请跑 'bookrec login' 完成一次性登录，"
+                        f"cookie 会保存到 {config.COOKIE_FILE}。"
+                    )
+                return False
 
             # 原有的"点我继续浏览"检测
             btn = page.get_by_text("点我继续浏览")
@@ -476,11 +533,11 @@ class DoubanBookSource(BaseDataSource):
         best_category = "其他"
         best_score = 0
 
-        for cat, config in categories.items():
+        for cat, cfg in categories.items():
             score = 0
-            for kw in config["keywords"]:
+            for kw in cfg["keywords"]:
                 if kw in title_text:
-                    score += config["weight"]
+                    score += cfg["weight"]
                 elif kw in abstract_text:
                     score += 1.0
 

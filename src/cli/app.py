@@ -300,6 +300,23 @@ def history(ctx):
         console.print(f"  {i}. {f}")
 
 
+@cli.command()
+def login():
+    """一次性登录豆瓣，保存 cookie 到本地用于后续抓取"""
+    from src.data_sources.douban import DoubanBookSource
+
+    console.print("[bold]🔐 启动豆瓣登录[/]")
+    console.print(
+        f"cookie 将保存到: [cyan]{config.COOKIE_FILE}[/]\n"
+        f"可通过环境变量 [cyan]BOOKREC_COOKIE_FILE[/] 覆盖"
+    )
+    try:
+        DoubanBookSource.login()
+    except Exception as e:
+        err_console.print(f"[red]登录失败: {e}[/]")
+        raise click.exceptions.Exit(1) from None
+
+
 def main():
     cli(obj={})
 

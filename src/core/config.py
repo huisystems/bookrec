@@ -46,6 +46,12 @@ DOUBAN_BASE = "https://book.douban.com"
 DOUBAN_LATEST = f"{DOUBAN_BASE}/latest"
 DOUBAN_TAG = f"{DOUBAN_BASE}/tag"
 
+# 豆瓣登录 cookie storage 路径（Playwright storage_state JSON 格式）
+# 可通过环境变量 BOOKREC_COOKIE_FILE 覆盖
+# 用户通过 'bookrec login' 子命令生成
+_DEFAULT_COOKIE_FILE = Path.home() / ".config" / "bookrec" / "douban_storage.json"
+COOKIE_FILE = os.environ.get("BOOKREC_COOKIE_FILE", str(_DEFAULT_COOKIE_FILE))
+
 # 有效分类
 VALID_CATEGORIES = ["经管", "AI"]
 TAG_CATEGORIES = {
