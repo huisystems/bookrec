@@ -19,15 +19,48 @@
 ## 快速开始
 
 ```bash
-# 安装依赖
+# 1. 安装依赖
 pip install -r requirements.txt
 playwright install chromium
 
-# 从豆瓣抓取最新图书
+# 2. 一次性登录豆瓣（保存 cookie 用于后续抓取）
+#    详见下方"豆瓣认证"一节
+bookrec login
+
+# 3. 从豆瓣抓取最新图书
 bookrec fetch
 
-# 生成推荐排行列表
+# 4. 生成推荐排行列表
 bookrec recommend --top 10 --output 推荐.md
+
+# 5. 浏览知识库
+bookrec list-books
+bookrec stats
+```
+
+`bookrec stats` 在有数据的知识库上的输出示例：
+
+```
+📊 知识库统计
+
+  图书总数: 60 本
+
+  分类分布:
+    AI     | ███████████████████████ 23
+    经管     | █████████████████████████████████████ 37
+```
+
+`bookrec recommend --top 3` 输出示例：
+
+```
+1. 《段永平投资问答录（投资逻辑篇）》
+   作者：段永平、雪球用户 · 评分 8.9 ⭐⭐⭐⭐½ (2134 人评价) · 推荐指数 91.0/100
+
+2. 《段永平投资问答录（商业逻辑篇）》
+   作者：段永平、雪球用户 · 评分 8.8 ⭐⭐⭐⭐½ (1762 人评价) · 推荐指数 85.4/100
+
+3. 《大厂小民 : 我在互联网公司的1480天》
+   作者：张小满 · 评分 8.5 ⭐⭐⭐⭐½ (898 人评价) · 推荐指数 67.0/100
 ```
 
 ---
@@ -70,6 +103,40 @@ python -m src.cli.app
 # 或
 python main.py
 ```
+
+---
+
+## 豆瓣认证
+
+**豆瓣要求登录后才能抓取 tag 页面**（2025 年末起）。在跑 `bookrec fetch` 之前先做一次交互式登录：
+
+```bash
+bookrec login
+```
+
+该命令会：
+1. 打开一个**有头**的 Chromium 窗口，指向 `https://accounts.douban.com/login`
+2. 等你在浏览器里完成登录（账密或扫码）
+3. 等你回到终端按 **Enter**
+4. 把浏览器会话（cookies + localStorage）保存到本地文件，格式为 [Playwright `storage_state` JSON](https://playwright.dev/python/docs/auth#reusing-authentication-state)
+
+之后每次跑 `bookrec fetch`，`bookrec` 会把 storage 文件加载到新的浏览器 context，等于"已经登录"——`bookrec` **不**存储或传输任何账号密码。
+
+### Cookie 文件位置
+
+| 路径 | 覆盖方式 |
+|---|---|
+| `~/.config/bookrec/douban_storage.json`（默认，首次 `bookrec login` 时生成） | `BOOKREC_COOKIE_FILE` 环境变量 |
+
+### Cookie 过期
+
+豆瓣会话会过期。如果 `bookrec fetch` 开始返回 0 本且 stderr 出现"检测到豆瓣登录拦截"，再跑一次 `bookrec login` 续期。
+
+### 无头 / CI 环境
+
+`bookrec login` 需要图形浏览器。无头或 CI 环境必须：
+- 提交一个预先生成的 storage_state 文件（按 secret 处理——拿到它的人能以你的身份操作豆瓣），或
+- 在 CI 里跳过活抓——本项目 CI 用 `smoke_fetch.py --skip-if-no-cookie` 这么做（见 [RELEASING.md](docs/RELEASING.md)）
 
 ---
 
@@ -167,6 +234,14 @@ bookrec note <豆瓣ID> 你的笔记内容
 
 每次执行会覆盖该图书已有的笔记。笔记以 YAML 元数据形式存储在图书文件中。
 
+### 一次性登录豆瓣
+
+```bash
+bookrec login
+```
+
+详见上方"豆瓣认证"一节了解该命令的具体行为与 session 文件存储位置。
+
 ### 查看知识库统计
 
 ```bash
@@ -210,11 +285,13 @@ bookrec history
 | 变量 | 说明 |
 |------|------|
 | `BOOKREC_VAULT` | 覆盖默认的知识库路径 |
+| `BOOKREC_COOKIE_FILE` | 覆盖豆瓣会话存储路径（见"豆瓣认证"一节） |
 
 示例：
 
 ```bash
 export BOOKREC_VAULT=/path/to/my/obsidian/vault
+export BOOKREC_COOKIE_FILE=/path/to/douban_storage.json
 bookrec fetch
 ```
 
@@ -227,18 +304,20 @@ bookrec/
 ├── main.py                  # 快速启动入口
 ├── pyproject.toml           # 包元数据与构建配置
 ├── requirements.txt         # 依赖列表
+├── smoke_fetch.py           # 发版前真实豆瓣抓取冒烟脚本（不打包进 wheel）
 ├── CONTRIBUTING.md          # 贡献指南
 ├── README.md                # 英文文档
 ├── README.zh-CN.md          # 中文文档
+├── LICENSE                  # Apache 2.0
 │
 ├── src/
 │   ├── cli/
-│   │   └── app.py           # Click CLI：7 个命令
+│   │   └── app.py           # Click CLI：8 个命令（login, fetch, recommend, ...）
 │   ├── core/
 │   │   └── config.py        # 全局配置
 │   ├── data_sources/
 │   │   ├── base.py          # 数据源抽象接口
-│   │   └── douban.py        # 豆瓣爬虫（基于 Playwright）
+│   │   └── douban.py        # 豆瓣爬虫（基于 Playwright + cookie 加载）
 │   ├── knowledge/
 │   │   └── store.py         # Obsidian 知识库存储层
 │   ├── models/
@@ -249,12 +328,19 @@ bookrec/
 │       ├── orchestrator.py  # 核心编排逻辑
 │       └── filter.py        # 筛选与排序引擎
 │
-├── tests/
+├── tests/                   # 67 项测试，不依赖网络
 │   ├── test_book_model.py
+│   ├── test_cli.py
+│   ├── test_douban_anti_scrape.py
 │   ├── test_douban_category.py
 │   ├── test_filter.py
 │   ├── test_markdown_gen.py
+│   ├── test_orchestrator.py
+│   ├── test_search_note.py
 │   └── test_store.py
+│
+├── docs/                    # 维护者文档
+│   └── RELEASING.md         # 完整发布运行手册
 │
 └── 知识库/                    # 默认 Obsidian 知识库（git 忽略）
     ├── 图书/                  # 按分类存放的图书条目
@@ -298,12 +384,13 @@ recommend ── 输出排序列表至 Markdown、JSON 或终端表格
 
 | 组件 | 技术 |
 |------|------|
-| 语言 | **Python 3.14+**（需 >= 3.10） |
-| CLI 框架 | **Click** 8.x |
-| 浏览器自动化 | **Playwright** 1.40+ |
+| 语言 | **Python 3.10+** |
+| CLI 框架 | **Click** 8.x（8 个命令：`fetch`, `recommend`, `list-books`, `search`, `note`, `login`, `stats`, `history`） |
+| 浏览器自动化 | **Playwright** 1.40+（Chromium） |
 | 数据序列化 | **PyYAML** 6.x |
 | 终端界面 | **Rich** 13+ |
-| 测试框架 | **Pytest** 7+（超过 44 项测试） |
+| 测试框架 | **Pytest** 7+（超过 60 项测试，外加真实豆瓣 `smoke_fetch.py`） |
+| Lint / 格式化 | **Ruff**（E/W/F/B/I/UP，行长 100） |
 | 存储格式 | **Obsidian 兼容 Markdown**，附 YAML 元数据 |
 
 ---

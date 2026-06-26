@@ -19,15 +19,48 @@ Automated book recommendation tool that scrapes Douban (豆瓣) for high-quality
 ## Quick Start
 
 ```bash
-# Install dependencies
+# 1. Install dependencies
 pip install -r requirements.txt
 playwright install chromium
 
-# Scrape latest books from Douban
+# 2. One-time login to Douban (saves cookie for scraping)
+#    See "Authentication" below for details
+bookrec login
+
+# 3. Scrape latest books from Douban
 bookrec fetch
 
-# Generate a ranked recommendation list
+# 4. Generate a ranked recommendation list
 bookrec recommend --top 10 --output 推荐.md
+
+# 5. Browse the vault
+bookrec list-books
+bookrec stats
+```
+
+Example `bookrec stats` output on a populated vault:
+
+```
+📊 知识库统计
+
+  图书总数: 60 本
+
+  分类分布:
+    AI     | ███████████████████████ 23
+    经管     | █████████████████████████████████████ 37
+```
+
+Example `bookrec recommend --top 3`:
+
+```
+1. 《段永平投资问答录（投资逻辑篇）》
+   作者：段永平、雪球用户 · 评分 8.9 ⭐⭐⭐⭐½ (2134 人评价) · 推荐指数 91.0/100
+
+2. 《段永平投资问答录（商业逻辑篇）》
+   作者：段永平、雪球用户 · 评分 8.8 ⭐⭐⭐⭐½ (1762 人评价) · 推荐指数 85.4/100
+
+3. 《大厂小民 : 我在互联网公司的1480天》
+   作者：张小满 · 评分 8.5 ⭐⭐⭐⭐½ (898 人评价) · 推荐指数 67.0/100
 ```
 
 ---
@@ -70,6 +103,49 @@ python -m src.cli.app
 # or
 python main.py
 ```
+
+---
+
+## Authentication
+
+**Douban requires login to fetch tag pages** (as of late 2025). Before running
+`bookrec fetch`, do a one-time interactive login:
+
+```bash
+bookrec login
+```
+
+This command will:
+1. Open a **headed** Chromium window pointing at `https://accounts.douban.com/login`
+2. Wait for you to complete the login in the browser (username/password or QR code)
+3. Wait for you to press **Enter** back in the terminal
+4. Save the browser session (cookies + local storage) to a local file as a
+   [Playwright `storage_state` JSON](https://playwright.dev/python/docs/auth#reusing-authentication-state)
+
+On every subsequent `bookrec fetch`, `bookrec` loads that storage file into a
+new browser context, so you're effectively "already logged in" — no
+credentials are stored or transmitted by `bookrec` itself.
+
+### Cookie file location
+
+| Path | Override |
+|---|---|
+| `~/.config/bookrec/douban_storage.json` (default, created on first `bookrec login`) | `BOOKREC_COOKIE_FILE` environment variable |
+
+### When cookies go stale
+
+Douban sessions expire. If `bookrec fetch` starts returning 0 books with
+"检测到豆瓣登录拦截" in stderr, just re-run `bookrec login` to refresh the
+session.
+
+### Headless / CI environments
+
+`bookrec login` requires a graphical browser. For headless or CI use you
+must either:
+- commit a pre-baked storage_state file (treat it like a secret — anyone
+  who has it can act as you on Douban), or
+- skip the live-Douban check in CI; the project's own CI does this via
+  `smoke_fetch.py --skip-if-no-cookie` (see [Releasing](docs/RELEASING.md)).
 
 ---
 
@@ -167,6 +243,15 @@ bookrec note <douban_id> Your note text here
 
 Each note overwrites the previous note for that book. Notes are stored as Markdown frontmatter in the book file.
 
+### One-time Douban login
+
+```bash
+bookrec login
+```
+
+See [Authentication](#authentication) above for full details on what
+this does and where the session file lives.
+
 ### View vault statistics
 
 ```bash
@@ -210,11 +295,13 @@ Configuration lives in `src/core/config.py`. Key defaults:
 | Variable | Description |
 |----------|-------------|
 | `BOOKREC_VAULT` | Override the default vault path |
+| `BOOKREC_COOKIE_FILE` | Override the Douban session storage path (see [Authentication](#authentication)) |
 
 Example:
 
 ```bash
 export BOOKREC_VAULT=/path/to/my/obsidian/vault
+export BOOKREC_COOKIE_FILE=/path/to/douban_storage.json
 bookrec fetch
 ```
 
@@ -227,17 +314,19 @@ bookrec/
 ├── main.py                  # Quick-start entry point
 ├── pyproject.toml           # Package metadata and build config
 ├── requirements.txt         # Dependency list
+├── smoke_fetch.py           # Manual real-Douban pre-release check (not packaged)
 ├── CONTRIBUTING.md          # Contributor guide
 ├── README.md                # This file
+├── LICENSE                  # Apache 2.0
 │
 ├── src/
 │   ├── cli/
-│   │   └── app.py           # Click CLI: 7 commands
+│   │   └── app.py           # Click CLI: 8 commands (login, fetch, recommend, ...)
 │   ├── core/
 │   │   └── config.py        # Global configuration
 │   ├── data_sources/
 │   │   ├── base.py          # Abstract data source interface
-│   │   └── douban.py        # Douban scraper (Playwright-based)
+│   │   └── douban.py        # Douban scraper (Playwright + cookie loading)
 │   ├── knowledge/
 │   │   └── store.py         # Obsidian vault storage layer
 │   ├── models/
@@ -248,12 +337,19 @@ bookrec/
 │       ├── orchestrator.py  # Central orchestration logic
 │       └── filter.py        # Filtering and ranking engine
 │
-├── tests/
+├── tests/                   # 67 tests, no network dependency
 │   ├── test_book_model.py
+│   ├── test_cli.py
+│   ├── test_douban_anti_scrape.py
 │   ├── test_douban_category.py
 │   ├── test_filter.py
 │   ├── test_markdown_gen.py
+│   ├── test_orchestrator.py
+│   ├── test_search_note.py
 │   └── test_store.py
+│
+├── docs/                    # Contributor-facing documentation
+│   └── RELEASING.md         # Full release runbook
 │
 └── 知识库/                    # Default Obsidian vault (gitignored)
     ├── 图书/                  # Book entries by category
@@ -297,12 +393,13 @@ recommend ── Output ranked list as Markdown, JSON, or terminal table
 
 | Component | Technology |
 |-----------|------------|
-| Language | **Python 3.14+** (requires >= 3.10) |
-| CLI framework | **Click** 8.x |
-| Browser automation | **Playwright** 1.40+ |
+| Language | **Python 3.10+** |
+| CLI framework | **Click** 8.x (8 commands: `fetch`, `recommend`, `list-books`, `search`, `note`, `login`, `stats`, `history`) |
+| Browser automation | **Playwright** 1.40+ (Chromium) |
 | Data serialization | **PyYAML** 6.x |
 | Terminal UI | **Rich** 13+ |
-| Testing | **Pytest** 7+ (over 44 tests) |
+| Testing | **Pytest** 7+ (over 60 tests, plus real-Douban `smoke_fetch.py`) |
+| Lint / format | **Ruff** (E/W/F/B/I/UP, line-length 100) |
 | Storage | **Obsidian-compatible Markdown** with YAML frontmatter |
 
 ---

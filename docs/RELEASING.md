@@ -119,26 +119,45 @@ git tag -a vX.Y.Z -m "vX.Y.Z — <one-line summary>"
 
 ## Step 2 — Push（需要 GitHub 凭据）
 
-```bash
-git push origin main --tags
-```
+### 2.1 配凭据
 
-如果 `git push` 报 `could not read Username`，需要先配凭据：
+如果 `git push` 报 `could not read Username`，从下面选一种：
 
 ```bash
 # 选项 A: 配环境变量 (PAT)
 export GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxx
-git push https://x-access-token:$GITHUB_TOKEN@github.com/huisystems/bookrec.git main --tags
+git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/huisystems/bookrec.git
 
 # 选项 B: 用 SSH
 git remote set-url origin git@github.com:huisystems/bookrec.git
 ssh-add ~/.ssh/id_ed25519
-git push origin main --tags
 
 # 选项 C: 用 GitHub CLI
 gh auth login
+```
+
+### 2.2 推 commits（不推 tag）
+
+**仅在你想把开发进度同步到 origin、但还不想触发 PyPI 发布时**用：
+
+```bash
+git push origin main
+```
+
+适用场景：
+- 反爬还没修、但要把现有工作备份到 origin
+- 等 v0.2.3 反爬修完 smoke 跑通后**再**推 tag
+- 多人协作：队友的 commit 先到 main，你的 tag 跟后面推
+
+### 2.3 推 commits + tag（标准发版）
+
+Step 1 全部走完后，**一次性**推：
+
+```bash
 git push origin main --tags
 ```
+
+⚠️ 推 tag 会触发 `publish.yml` 的 tag push 分支：自动 build + 推 **TestPyPI**（不是 PyPI）。PyPI 需要 Step 4 手动 promote。
 
 ---
 
