@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.2.3] - 2026-06-26
 
 ### Added
 
@@ -17,12 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `DoubanBookSource.login()` 静态方法：启动 headed Chromium 打开豆瓣登录页，用户手动登录后按回车，cookie 落到 `COOKIE_FILE`
   - 新 CLI 命令 `bookrec login` 包装 `DoubanBookSource.login()`
   - `_handle_anti_scrape` 扩展：检测 `<title>豆瓣 - 登录跳转页</title>` 或 `accounts.douban.com` URL，提示"无 cookie 时跑 `bookrec login`"或"cookie 已失效时重跑 `bookrec login`"
+- `bookrec login` 用户文档：README.md + README.zh-CN.md 新增 "Authentication / 豆瓣认证" 段，说明 login 流程、cookie 路径、过期处理、headless/CI 限制
 
-### Blocked (已解除)
+### Fixed
 
-- v0.2.3 发布阻塞已通过上述 cookie 支持解除。等新一轮 smoke_fetch 验证通过后即可切 v0.2.3 → PyPI。
+- **v0.2.2 → v0.2.3 发布阻塞解除**：smoke_fetch 第一次跑通 10 本（v0.2.2 tag 准备时），第二次 0 本 —— 根因豆瓣 tag 页面对未登录 Playwright 强制 302 到登录跳转页。修复通过上方 cookie 支持实现。
 
-## [0.2.2] - 2026-06-26
+## [0.2.2] - 2026-06-26 (未发布: 变更合入 0.2.3)
 
 ### Added
 
@@ -38,7 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `pyproject.toml` 补上 `readme = "README.md"` 和 `license = { file = "LICENSE" }` 字段，消除 `twine check` 报的 `long_description` / `long_description_content_type` missing 警告，使包能直接 `pip install` 后正常显示 README
 
-## [0.2.1] - 2026-06-26
+## [0.2.1] - 2026-06-26 (未发布: 变更合入 0.2.3)
 
 ### Added
 

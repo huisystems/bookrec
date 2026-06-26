@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bookrec"
-version = "0.2.2"
+version = "0.2.3"
 description = "书籍推荐自动化工具 - 从豆瓣抓取经管/AI类好书，沉淀到知识库"
 readme = "README.md"
 license = { file = "LICENSE" }
