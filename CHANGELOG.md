@@ -10,10 +10,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `smoke_fetch.py` — 发版前的真实豆瓣抓取冒烟脚本。临时 vault、`--max-pages 1`、2 分钟超时，验证 CLI 退出 0 / 至少 1 本入库 / frontmatter 完整 / `## 简介` section 生成（detail fetch 工作）。不入项目 `知识库/`，不被 setuptools 打包到 wheel。集成到 `docs/RELEASING.md` Step 1.3 作为发版前必跑步骤。
+- **豆瓣登录 cookie 支持**：
+  - `src/core/config.py` 新增 `COOKIE_FILE`（默认 `~/.config/bookrec/douban_storage.json`，可用 `BOOKREC_COOKIE_FILE` 环境变量覆盖）
+  - `DoubanBookSource._make_browser` 在 cookie 文件存在时通过 Playwright `storage_state` 加载；不存在则不带 cookie
+  - `DoubanBookSource.login()` 静态方法：启动 headed Chromium 打开豆瓣登录页，用户手动登录后按回车，cookie 落到 `COOKIE_FILE`
+  - 新 CLI 命令 `bookrec login` 包装 `DoubanBookSource.login()`
+  - `_handle_anti_scrape` 扩展：检测 `<title>豆瓣 - 登录跳转页</title>` 或 `accounts.douban.com` URL，提示"无 cookie 时跑 `bookrec login`"或"cookie 已失效时重跑 `bookrec login`"
 
-### Blocked
+### Blocked (已解除)
 
-- **首次发布（v0.2.3 → PyPI）被 smoke_fetch 阻止**：smoke 第一次跑通 10 本 AI（v0.2.2 tag 时），第二次（v0.2.3 准备发时）抓回 0 本。根因：豆瓣 tag 页面已升级反爬——当未登录 Playwright 访问时，服务器返回 `<title>豆瓣 - 登录跳转页</title>` 而不是带书目列表的页面；当前 `_handle_anti_scrape` 的检测（"点我继续浏览"按钮 / 验证码 selector / captcha 标题）均未覆盖到此模式。`douban.py` 当前**无 cookie 处理逻辑**。在引入登录 cookie（或更稳的抓取策略）之前，发到 PyPI 不可行——全球用户拿到包后会得到 0 本的"空抓取"。v0.2.3 暂不发布，等反爬修复后再切。
+- v0.2.3 发布阻塞已通过上述 cookie 支持解除。等新一轮 smoke_fetch 验证通过后即可切 v0.2.3 → PyPI。
 
 ## [0.2.2] - 2026-06-26
 
