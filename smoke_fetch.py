@@ -7,22 +7,27 @@ to confirm Playwright + 豆瓣 page structure + orchestrator all still
 talk to each other correctly.
 
 Usage:
-    .venv/bin/python smoke_fetch.py
+    .venv/bin/python smoke_fetch.py                       # fail if no cookie
+    .venv/bin/python smoke_fetch.py --skip-if-no-cookie   # exit 0 if no cookie
 
 What it does:
   1. Creates a fresh tmp vault (does not touch the project's 知识库/)
-  2. Invokes the real CLI: bookrec fetch --vault <tmp> --category AI
-        --max-pages 1 --no-detail
-  3. Asserts the CLI exits 0, returns a non-zero book count
-  4. Asserts at least one book .md file is written into the tmp vault
-  5. Cleans up the tmp vault on success or failure
+  2. If --skip-if-no-cookie and config.COOKIE_FILE does not exist:
+     print a warning and exit 0 (for CI environments without a logged-in
+     Douban session)
+  3. Invokes the real CLI: bookrec fetch --vault <tmp> --category AI
+        --max-pages 1
+  4. Asserts the CLI exits 0, returns a non-zero book count
+  5. Asserts at least one book .md file is written into the tmp vault
+  6. Cleans up the tmp vault on success or failure
 
 Exit codes:
-  0  fetch succeeded, found >=1 book
-  1  fetch failed (network error, captcha, selector broken, etc.)
-  2  fetch returned 0 books (page structure may have changed)
+  0   fetch succeeded, found >=1 book (or skipped per --skip-if-no-cookie)
+  1   fetch failed (network error, captcha, selector broken, etc.)
+  2   fetch returned 0 books (page structure may have changed)
 """
 
+import argparse
 import shutil
 import subprocess
 import sys
@@ -31,12 +36,32 @@ from pathlib import Path
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    parser.add_argument(
+        "--skip-if-no-cookie",
+        action="store_true",
+        help="Exit 0 (with warning) if config.COOKIE_FILE does not exist. "
+        "Intended for CI environments without a logged-in Douban session.",
+    )
+    args = parser.parse_args()
+
     repo_root = Path(__file__).resolve().parent
     venv_python = repo_root / ".venv" / "bin" / "python"
 
     if not venv_python.exists():
         print(f"ERROR: {venv_python} not found. Run from the project root with .venv/ active.")
         return 1
+
+    # Lazy-import config so we can skip before importing playwright/click
+    from src.core import config
+
+    if args.skip_if_no_cookie and not Path(config.COOKIE_FILE).exists():
+        print(
+            f"SKIP: --skip-if-no-cookie set, but {config.COOKIE_FILE} not found. "
+            f"CI environments without a logged-in Douban session should expect this. "
+            f"Run 'bookrec login' locally before tagging a release."
+        )
+        return 0
 
     tmp_vault = Path(tempfile.mkdtemp(prefix="bookrec-smoke-"))
     try:
@@ -90,12 +115,11 @@ def main() -> int:
             print(content[:500])
             return 1
 
-        # If detail fetch was on (not --no-detail), first book should have
-        # a description section populated.
+        # Detail fetch (not --no-detail) should populate 简介 section
         if "## 简介" not in content:
-            print(f"WARN: {first.name} has no 简介 section — detail fetch may have failed")
             # Not a hard failure: maybe the book's detail page legitimately
             # has no description, or captcha kicked in. Just report.
+            print(f"WARN: {first.name} has no 简介 section — detail fetch may have failed")
         else:
             print(f"OK: {first.name} has 简介 section (detail fetch worked)")
 
