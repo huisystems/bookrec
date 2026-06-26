@@ -268,13 +268,26 @@ class DoubanBookSource(BaseDataSource):
             douban_url = title_elem.get_attribute("href")
 
             abstract = item.locator(".subject-abstract").inner_text().strip()
+            # 格式: 作者 / 译者(可选) / 出版社 / 日期 / 定价 — 与 tag 页面 .pub 字段相同
+            # 从右向左定位 YYYY-M 段, 避免硬编码下标 (不同条目 segment 数会变)
             parts = [p.strip() for p in abstract.split("/")]
             author = parts[0] if len(parts) > 0 else "未知"
 
-            pub_date_str = parts[1] if len(parts) > 1 else ""
-            pub_date = self._parse_date(pub_date_str)
+            pub_date_str = ""
+            publisher = "未知"
+            date_idx = -1
+            for i in range(len(parts) - 1, -1, -1):
+                if re.search(r"\d{4}-\d{1,2}", parts[i]):
+                    date_idx = i
+                    break
 
-            publisher = parts[2] if len(parts) > 2 else "未知"
+            if date_idx >= 0:
+                pub_date_str = parts[date_idx]
+                pub_date = self._parse_date(pub_date_str)
+                if date_idx > 1:
+                    publisher = parts[date_idx - 1]
+            else:
+                pub_date = date.today()
 
             rating_text = item.locator(".subject-rating .font-small").inner_text().strip()
             rating = float(rating_text) if rating_text else 0.0
