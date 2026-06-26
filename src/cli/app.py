@@ -263,6 +263,7 @@ def note(ctx, douban_id: str, note_text: tuple):
         console.print(f"[green]✅ 笔记已添加到 douban_id={douban_id}[/]")
     except ValueError as e:
         err_console.print(f"[red]❌ {e}[/]")
+        ctx.exit(1)
 
 
 @cli.command()
