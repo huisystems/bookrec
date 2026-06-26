@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `smoke_fetch.py` — 发版前的真实豆瓣抓取冒烟脚本。临时 vault、`--max-pages 1`、2 分钟超时，验证 CLI 退出 0 / 至少 1 本入库 / frontmatter 完整 / `## 简介` section 生成（detail fetch 工作）。不入项目 `知识库/`，不被 setuptools 打包到 wheel。集成到 `docs/RELEASING.md` Step 1.3 作为发版前必跑步骤。
+- `smoke_fetch.py --skip-if-no-cookie` 标志：CI 环境无 cookie 时静默 exit 0 + 警告，不阻塞 PR/main pipeline。`.github/workflows/ci.yml` 新增独立 `smoke` job（`needs: test` + `if: push main`），调用 `python smoke_fetch.py --skip-if-no-cookie` 做端到端真抓烟测；不与 4-版本 matrix 的 `test` job 重复
 - **豆瓣登录 cookie 支持**：
   - `src/core/config.py` 新增 `COOKIE_FILE`（默认 `~/.config/bookrec/douban_storage.json`，可用 `BOOKREC_COOKIE_FILE` 环境变量覆盖）
   - `DoubanBookSource._make_browser` 在 cookie 文件存在时通过 Playwright `storage_state` 加载；不存在则不带 cookie
